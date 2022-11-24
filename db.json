@@ -1,0 +1,22 @@
+[
+  {
+    "categoryName": "HP",
+    "categoryId": 1
+  },
+  {
+    "categoryName": "Lenovo",
+    "categoryId": 2
+  },
+  {
+    "categoryName": "Dell",
+    "categoryId": 3
+  },
+  {
+    "categoryName": "Apple",
+    "categoryId": 4
+  },
+  {
+    "categoryName": "Assus",
+    "categoryId": 5
+  }
+]
