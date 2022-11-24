@@ -21,10 +21,38 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+/* DB_USER="reselledProductsHub"
+DB_PASSWORD="IYHq8c8zQ6xsR8fj" */
+
 const usedLaptopCollections = client
   .db("reselledProductsHub")
   .collection("LaptopCollections");
+
+const allCategories = client
+  .db("reselledProductsHub")
+  .collection("collectionCategory");
 // perform actions on the collection object
+
+async function run() {
+  try {
+    const usedLaptopCollections = client
+      .db("reselledProductsHub")
+      .collection("LaptopCollections");
+    const allCategories = client
+      .db("reselledProductsHub")
+      .collection("collectionCategory");
+
+    //get api for all category
+
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const result = await allCategories.find(query).toArray();
+      res.send(result);
+    });
+  } finally {
+  }
+}
+run().catch((err) => console.log(err));
 
 app.get("/", (req, res) => {
   res.send("Used Product Resel server is running Perfectly");
