@@ -22,15 +22,8 @@ const client = new MongoClient(uri, {
 });
 
 /* DB_USER="reselledProductsHub"
-DB_PASSWORD="IYHq8c8zQ6xsR8fj" */
+DB_PASSWORD="q8rEGaBol0bzCJ2x" */
 
-const usedLaptopCollections = client
-  .db("reselledProductsHub")
-  .collection("LaptopCollections");
-
-const allCategories = client
-  .db("reselledProductsHub")
-  .collection("collectionCategory");
 // perform actions on the collection object
 
 async function run() {
@@ -46,7 +39,8 @@ async function run() {
 
     app.get("/categories", async (req, res) => {
       const query = {};
-      const result = await allCategories.find(query).toArray();
+      const result = await usedLaptopCollections.find(query).toArray();
+      console.log(result);
       res.send(result);
     });
   } finally {
