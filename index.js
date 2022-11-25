@@ -12,7 +12,7 @@ app.use(express.json());
 
 // mongodb database setup
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.jz1qjld.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
@@ -39,14 +39,27 @@ async function run() {
       .db("reselledProductsHub")
       .collection("users");
 
+    const allProductsCollection = client
+      .db("reselledProductsHub")
+      .collection("allProducts");
+
     //get api for all category
 
     app.get("/categories", async (req, res) => {
       const query = {};
-      const result = await usedLaptopCollections.find(query).toArray();
+      const result = await allCategories.find(query).toArray();
       console.log(result);
       res.send(result);
     });
+
+    app.get("/categories/:id", async (req, res) => {
+      const query = req.params.id;
+      const categoryId = { _id: ObjectId(query) };
+      const result = await allCategories.findOne(categoryId);
+      res.send(result);
+    });
+
+    //get api for  category wise product using id
 
     //post api for collecting user email with info
 
@@ -56,48 +69,10 @@ async function run() {
       res.send(user);
     });
 
-    //get api to check if the user is admin or not
-
-    app.get("/users/admin/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email };
-      const user = await usersCollection.findOne(query);
-      res.send({ isAdmin: user?.role === "admin" });
-    });
-
-    //api for admin role to update user info
-
-    app.put("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const options = { upsert: true };
-      const updatedDoc = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await usersCollection.updateOne(
-        filter,
-        updatedDoc,
-        options
-      );
+    app.post("/allproducts", async (req, res) => {
+      const product = req.body;
+      const result = await allProductsCollection.insertOne(product);
       res.send(result);
-    });
-
-    //get api for jsonwebtoken
-
-    app.get("/jwt", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      if (user) {
-        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
-          expiresIn: "1h",
-        });
-        return res.send({ accessToken: token });
-      }
-      console.log(user);
-      res.status(403).send({ accessToken: "unauthorised User" });
     });
   } finally {
   }
