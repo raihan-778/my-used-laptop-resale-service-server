@@ -35,6 +35,10 @@ async function run() {
       .db("reselledProductsHub")
       .collection("collectionCategory");
 
+    const usersCollection = client
+      .db("reselledProductsHub")
+      .collection("users");
+
     //get api for all category
 
     app.get("/categories", async (req, res) => {
@@ -42,6 +46,58 @@ async function run() {
       const result = await usedLaptopCollections.find(query).toArray();
       console.log(result);
       res.send(result);
+    });
+
+    //post api for collecting user email with info
+
+    app.post("/users", (req, res) => {
+      const user = req.body;
+      const result = usersCollection.insertOne(user);
+      res.send(user);
+    });
+
+    //get api to check if the user is admin or not
+
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
+    //api for admin role to update user info
+
+    app.put("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    //get api for jsonwebtoken
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      console.log(user);
+      res.status(403).send({ accessToken: "unauthorised User" });
     });
   } finally {
   }
