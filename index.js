@@ -62,7 +62,7 @@ async function run() {
         categoryName: categoryName,
       };
       const products = await allProductsCollection.find(query).toArray();
-      console.log(products);
+
       res.send(products);
     });
 
@@ -89,8 +89,9 @@ async function run() {
       const product = req.body;
       const result = await allProductsCollection.insertOne(product);
       res.send(result);
-      console.log(result);
     });
+
+    //post api for booked product collection
     app.post("/booking", async (req, res) => {
       const bookedProduct = req.body;
       const result = await bookedProductsCollection.insertOne(bookedProduct);
