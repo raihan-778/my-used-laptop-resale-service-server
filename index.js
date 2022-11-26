@@ -53,10 +53,10 @@ async function run() {
     });
 
     app.get("/categories/:id", async (req, res) => {
-      const query = req.params.id;
-      const categoryId = { _id: ObjectId(query) };
-      const result = await allCategories.findOne(categoryId);
-      res.send(result);
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const category = await allCategories.findOne(query);
+      res.send(category);
     });
 
     //get api for  category wise product using id
@@ -67,6 +67,14 @@ async function run() {
       const user = req.body;
       const result = usersCollection.insertOne(user);
       res.send(user);
+    });
+
+    //get api for getting products collection
+
+    app.get("/allproducts", async (req, res) => {
+      const query = {};
+      const result = await allProductsCollection.find(query).toArray();
+      res.send(result);
     });
 
     app.post("/allproducts", async (req, res) => {
