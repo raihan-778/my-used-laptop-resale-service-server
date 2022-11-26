@@ -43,20 +43,27 @@ async function run() {
       .db("reselledProductsHub")
       .collection("allProducts");
 
+    const bookedProductsCollection = client
+      .db("reselledProductsHub")
+      .collection("bookedProducts");
+
     //get api for all category
 
     app.get("/categories", async (req, res) => {
       const query = {};
       const result = await allCategories.find(query).toArray();
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
-    app.get("/categories/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const category = await allCategories.findOne(query);
-      res.send(category);
+    app.get("/categories/:categoryName", async (req, res) => {
+      const categoryName = req.params.categoryName;
+      const query = {
+        categoryName: categoryName,
+      };
+      const products = await allProductsCollection.find(query).toArray();
+      console.log(products);
+      res.send(products);
     });
 
     //get api for  category wise product using id
@@ -66,7 +73,7 @@ async function run() {
     app.post("/users", (req, res) => {
       const user = req.body;
       const result = usersCollection.insertOne(user);
-      res.send(user);
+      res.send(result);
     });
 
     //get api for getting products collection
@@ -77,9 +84,16 @@ async function run() {
       res.send(result);
     });
 
+    //post api for all products db
     app.post("/allproducts", async (req, res) => {
       const product = req.body;
       const result = await allProductsCollection.insertOne(product);
+      res.send(result);
+      console.log(result);
+    });
+    app.post("/booking", async (req, res) => {
+      const bookedProduct = req.body;
+      const result = await bookedProductsCollection.insertOne(bookedProduct);
       res.send(result);
     });
   } finally {
