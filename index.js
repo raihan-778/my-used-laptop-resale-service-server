@@ -26,6 +26,24 @@ DB_PASSWORD="q8rEGaBol0bzCJ2x" */
 
 // perform actions on the collection object
 
+//midleware for verify jwt
+
+/* const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("unauthorised access");
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbiden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+ */
+
 async function run() {
   try {
     const usedLaptopCollections = client
@@ -46,6 +64,20 @@ async function run() {
     const bookedProductsCollection = client
       .db("reselledProductsHub")
       .collection("bookedProducts");
+
+    //midleware for verify admin to avoiding code repet
+
+    // Note: make sure that you will run verifyAdmin function after verify JWT Function
+
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send("forbidden Access");
+      }
+      next();
+    };
 
     //get api for all category
 
@@ -95,6 +127,43 @@ async function run() {
     app.post("/booking", async (req, res) => {
       const bookedProduct = req.body;
       const result = await bookedProductsCollection.insertOne(bookedProduct);
+      res.send(result);
+    });
+
+    // all api for dashboard
+
+    //get api for all sellers
+
+    app.get("/sellers", async (req, res) => {
+      const query = { type: "seller" };
+      const sellers = await usersCollection.find(query).toArray();
+      res.send(sellers);
+      console.log(sellers);
+    });
+
+    //get api for picking admin user
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
+    // put api for verify user
+    app.put("/users/admin/:id", verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          type: "verified",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
       res.send(result);
     });
   } finally {
