@@ -108,6 +108,15 @@ async function run() {
       res.send(result);
     });
 
+    //delete api for users collection
+
+    app.delete("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     //get api for getting products collection
 
     app.get("/allproducts", async (req, res) => {
@@ -171,7 +180,6 @@ async function run() {
     //get api for sellers products
     app.get("/sellersproducts", async (req, res) => {
       const email = req.query.email;
-
       const query = {
         email: email,
       };
