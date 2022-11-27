@@ -140,6 +140,13 @@ async function run() {
       res.send(sellers);
       console.log(sellers);
     });
+    //get api for all buyers
+    app.get("/buyers", async (req, res) => {
+      const query = { type: "buyer" };
+      const buyers = await usersCollection.find(query).toArray();
+      res.send(buyers);
+      console.log(buyers);
+    });
 
     //get api for picking admin user
     app.get("/users/admin/:email", async (req, res) => {
