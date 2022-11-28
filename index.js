@@ -188,6 +188,30 @@ async function run() {
       res.send(myProducts);
     });
 
+    app.put("/sellersproducts/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          advertise: "true",
+        },
+      };
+      const result = await allProductsCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    //get api for picking advertised Products
+    app.get("/allproducts/advertise", async (req, res) => {
+      const query = { advertise: "true" };
+      const products = await allProductsCollection.find(query).toArray();
+      res.send(products);
+    });
+
     //get api for picking seller user
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
