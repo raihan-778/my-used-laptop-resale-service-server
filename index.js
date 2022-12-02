@@ -130,6 +130,7 @@ async function run() {
       const product = req.body;
       const result = await allProductsCollection.insertOne(product);
       res.send(result);
+      console.log(result);
     });
 
     //post api for booked product collection
@@ -168,13 +169,19 @@ async function run() {
     //get api for buyers products
     app.get("/buyersproducts", async (req, res) => {
       const email = req.query.email;
-
       const query = {
         email: email,
       };
-
       const myProducts = await bookedProductsCollection.find(query).toArray();
       res.send(myProducts);
+    });
+    //delete products from booking
+    app.delete("/booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookedProductsCollection.deleteOne(filter);
+      console.log(result);
+      res.send(result);
     });
 
     //get api for sellers products
@@ -183,8 +190,8 @@ async function run() {
       const query = {
         email: email,
       };
-
       const myProducts = await allProductsCollection.find(query).toArray();
+      console.log(myProducts);
       res.send(myProducts);
     });
 
@@ -202,6 +209,14 @@ async function run() {
         updatedDoc,
         options
       );
+      res.send(result);
+    });
+
+    app.delete("/sellersporducts/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await allProductsCollection.deleteOne(filter);
+      console.log(result);
       res.send(result);
     });
 
@@ -236,6 +251,15 @@ async function run() {
         options
       );
       res.send(result);
+    });
+
+    //get api for picking verified user
+    app.get("/users/verified/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      console.log(user);
+      res.send({ isVerified: user?.status === "verified" });
     });
   } finally {
   }
