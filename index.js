@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -28,10 +29,10 @@ DB_PASSWORD="q8rEGaBol0bzCJ2x" */
 
 //midleware for verify jwt
 
-/* const verifyJWT = (req, res, next) => {
+const verifyJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).send("unauthorised access");
+    return res.status(401).send("unAuthorised access");
   }
   const token = authHeader.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
@@ -42,13 +43,9 @@ DB_PASSWORD="q8rEGaBol0bzCJ2x" */
     next();
   });
 };
- */
 
 async function run() {
   try {
-    const usedLaptopCollections = client
-      .db("reselledProductsHub")
-      .collection("LaptopCollections");
     const allCategories = client
       .db("reselledProductsHub")
       .collection("collectionCategory");
@@ -100,6 +97,23 @@ async function run() {
 
     //get api for  category wise product using id
 
+    //get api for jwt when user is logged in
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      console.log(user);
+      res.status(403).send({ accessToken: "unauthorised User" });
+    });
+
     //post api for collecting user email with info
 
     app.post("/users", (req, res) => {
@@ -110,8 +124,9 @@ async function run() {
 
     //delete api for users collection
 
-    app.delete("/users/:email", async (req, res) => {
+    app.delete("/users/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
+      console.log("user delete", req.headers.authorization);
       const filter = { email: email };
       const result = await usersCollection.deleteOne(filter);
       res.send(result);
@@ -130,7 +145,6 @@ async function run() {
       const product = req.body;
       const result = await allProductsCollection.insertOne(product);
       res.send(result);
-      console.log(result);
     });
 
     //post api for booked product collection
@@ -144,18 +158,18 @@ async function run() {
 
     //get api for all sellers
 
-    app.get("/sellers", async (req, res) => {
+    app.get("/sellers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { type: "seller" };
       const sellers = await usersCollection.find(query).toArray();
       res.send(sellers);
-      console.log(sellers);
+      // console.log(sellers);
     });
     //get api for all buyers
-    app.get("/buyers", async (req, res) => {
+    app.get("/buyers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { type: "buyer" };
       const buyers = await usersCollection.find(query).toArray();
       res.send(buyers);
-      console.log(buyers);
+      // console.log(req.headers.authorization);
     });
 
     //get api for picking admin user
@@ -180,28 +194,29 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await bookedProductsCollection.deleteOne(filter);
-      console.log(result);
+
       res.send(result);
     });
 
     //get api for sellers products
     app.get("/sellersproducts", async (req, res) => {
       const email = req.query.email;
+
       const query = {
         email: email,
       };
       const myProducts = await allProductsCollection.find(query).toArray();
-      console.log(myProducts);
+
       res.send(myProducts);
     });
 
-    app.put("/sellersproducts/:id", async (req, res) => {
+    app.put("/sellersproducts/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
       const updatedDoc = {
         $set: {
-          advertise: "true",
+          advertise: "advertise",
         },
       };
       const result = await allProductsCollection.updateOne(
@@ -214,15 +229,16 @@ async function run() {
 
     app.delete("/sellersporducts/:id", async (req, res) => {
       const id = req.params.id;
+
       const filter = { _id: ObjectId(id) };
       const result = await allProductsCollection.deleteOne(filter);
-      console.log(result);
+
       res.send(result);
     });
 
     //get api for picking advertised Products
     app.get("/allproducts/advertise", async (req, res) => {
-      const query = { advertise: "true" };
+      const query = { advertise: "advertise" };
       const products = await allProductsCollection.find(query).toArray();
       res.send(products);
     });
@@ -236,29 +252,34 @@ async function run() {
     });
 
     // put api for verify user
-    app.put("/users/seller/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const options = { upsert: true };
-      const updatedDoc = {
-        $set: {
-          status: "verified",
-        },
-      };
-      const result = await usersCollection.updateOne(
-        query,
-        updatedDoc,
-        options
-      );
-      res.send(result);
-    });
+    app.put(
+      "/users/seller/:email",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        console.log("seller verify", req.headers.authorization);
+        const query = { email: email };
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            status: "verified",
+          },
+        };
+        const result = await usersCollection.updateOne(
+          query,
+          updatedDoc,
+          options
+        );
+        res.send(result);
+      }
+    );
 
     //get api for picking verified user
     app.get("/users/verified/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      console.log(user);
       res.send({ isVerified: user?.status === "verified" });
     });
   } finally {
