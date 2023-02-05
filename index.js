@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const app = express();
+const stripe = require("stripe")(
+  "sk_test_51M6pynDoqXus93lmSCtHQmR7JIt71LFT43aufyCOEGOsJ714Cm8aBD473UAJVk2kDaMTcGwnyhxgk08CC95VcRs300KQPtK2Nt"
+);
 const port = process.env.PORT || 5000;
 
 require("dotenv").config();
@@ -57,6 +60,9 @@ async function run() {
     const allProductsCollection = client
       .db("reselledProductsHub")
       .collection("allProducts");
+    const upcomingCollection = client
+      .db("reselledProductsHub")
+      .collection("upcomingProducts");
 
     const bookedProductsCollection = client
       .db("reselledProductsHub")
@@ -81,6 +87,18 @@ async function run() {
     app.get("/categories", async (req, res) => {
       const query = {};
       const result = await allCategories.find(query).toArray();
+      // console.log(result);
+      res.send(result);
+    });
+
+    //get api for upcoming products
+
+    app.get("/upcoming-product", async (req, res) => {
+      const category = req.query.category;
+      const query = {
+        category: category,
+      };
+      const result = await upcomingCollection.find(query).toArray();
       // console.log(result);
       res.send(result);
     });
@@ -189,98 +207,117 @@ async function run() {
       const myProducts = await bookedProductsCollection.find(query).toArray();
       res.send(myProducts);
     });
-    //delete products from booking
-    app.delete("/booking/:id", async (req, res) => {
+
+    //get  booking info by id
+    app.get("/booking/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const result = await bookedProductsCollection.deleteOne(filter);
-
+      const query = { _id: ObjectId(id) };
+      const result = await bookedProductsCollection.findOne(query);
       res.send(result);
-    });
+    }),
+      //delete products from booking
+      app.delete("/booking/:id", async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await bookedProductsCollection.deleteOne(filter);
 
-    //get api for sellers products
-    app.get("/sellersproducts", async (req, res) => {
-      const email = req.query.email;
+        res.send(result);
+      }),
+      //get api for sellers products
+      app.get("/sellersproducts", async (req, res) => {
+        const email = req.query.email;
 
-      const query = {
-        email: email,
-      };
-      const myProducts = await allProductsCollection.find(query).toArray();
+        const query = {
+          email: email,
+        };
+        const myProducts = await allProductsCollection.find(query).toArray();
 
-      res.send(myProducts);
-    });
-
-    app.put("/sellersproducts/:id", verifyJWT, async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const options = { upsert: true };
-      const updatedDoc = {
-        $set: {
-          advertise: "advertise",
-        },
-      };
-      const result = await allProductsCollection.updateOne(
-        filter,
-        updatedDoc,
-        options
-      );
-      res.send(result);
-    });
-
-    app.delete("/sellersporducts/:id", async (req, res) => {
-      const id = req.params.id;
-
-      const filter = { _id: ObjectId(id) };
-      const result = await allProductsCollection.deleteOne(filter);
-
-      res.send(result);
-    });
-
-    //get api for picking advertised Products
-    app.get("/allproducts/advertise", async (req, res) => {
-      const query = { advertise: "advertise" };
-      const products = await allProductsCollection.find(query).toArray();
-      res.send(products);
-    });
-
-    //get api for picking seller user
-    app.get("/users/seller/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      res.send({ isSeller: user?.type === "seller" });
-    });
-
-    // put api for verify user
-    app.put(
-      "/users/seller/:email",
-      verifyJWT,
-      verifyAdmin,
-      async (req, res) => {
-        const email = req.params.email;
-        console.log("seller verify", req.headers.authorization);
-        const query = { email: email };
+        res.send(myProducts);
+      }),
+      app.put("/sellersproducts/:id", verifyJWT, async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
         const options = { upsert: true };
         const updatedDoc = {
           $set: {
-            status: "verified",
+            advertise: "advertise",
           },
         };
-        const result = await usersCollection.updateOne(
-          query,
+        const result = await allProductsCollection.updateOne(
+          filter,
           updatedDoc,
           options
         );
         res.send(result);
-      }
-    );
+      }),
+      app.delete("/sellersporducts/:id", async (req, res) => {
+        const id = req.params.id;
 
-    //get api for picking verified user
-    app.get("/users/verified/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const user = await usersCollection.findOne(query);
-      res.send({ isVerified: user?.status === "verified" });
+        const filter = { _id: ObjectId(id) };
+        const result = await allProductsCollection.deleteOne(filter);
+
+        res.send(result);
+      }),
+      //get api for picking advertised Products
+      app.get("/allproducts/advertise", async (req, res) => {
+        const query = { advertise: "advertise" };
+        const products = await allProductsCollection.find(query).toArray();
+        res.send(products);
+      }),
+      //get api for picking seller user
+      app.get("/users/seller/:email", async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const user = await usersCollection.findOne(query);
+        res.send({ isSeller: user?.type === "seller" });
+      }),
+      // put api for verify user
+      app.put(
+        "/users/seller/:email",
+        verifyJWT,
+        verifyAdmin,
+        async (req, res) => {
+          const email = req.params.email;
+          console.log("seller verify", req.headers.authorization);
+          const query = { email: email };
+          const options = { upsert: true };
+          const updatedDoc = {
+            $set: {
+              status: "verified",
+            },
+          };
+          const result = await usersCollection.updateOne(
+            query,
+            updatedDoc,
+            options
+          );
+          res.send(result);
+        }
+      ),
+      //get api for picking verified user
+      app.get("/users/verified/:email", async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const user = await usersCollection.findOne(query);
+        res.send({ isVerified: user?.status === "verified" });
+      });
+    //Api for payment system
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = price * 100;
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
   } finally {
   }
